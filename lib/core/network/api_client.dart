@@ -45,6 +45,17 @@ class ApiClient {
   Future<Response> getTenants() {
     return _dio.get('/api/tenants');
   }
+
+  Future<Response> getTenantById(String id) {
+    return _dio.get('/api/tenants/$id');
+  }
+
+  Future<Response> createCustomer({required String name, required String email}) {
+    return _dio.post('/api/customers', data: {
+      'name': name,
+      'email': email,
+    });
+  }
 }
 
 // Provider global

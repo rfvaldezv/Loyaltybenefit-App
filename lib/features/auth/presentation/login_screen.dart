@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
 import '../../dashboard/providers/tenant_provider.dart';
-import '../presentation/login_screen.dart';
+import '../../dashboard/presentation/tenant_detail_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -30,11 +30,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         final token = response.data['token'];
         final nombre = response.data['nombre'];
         
-        // Guardamos el token en el cliente HTTP
         api.setToken(token);
 
         if (mounted) {
-          // Navegar a la pantalla de bienvenida
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => DashboardScreen(nombre: nombre)),
@@ -44,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('❌ Error de login: Verifica tus credenciales'),
             backgroundColor: Colors.red,
           ),
@@ -120,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 // ---------------------------------------------------------
-// Dashboard modificado para mostrar la lista de Hoteles
+// Dashboard (Lista de Hoteles)
 // ---------------------------------------------------------
 class DashboardScreen extends ConsumerWidget {
   final String nombre;
@@ -128,7 +126,6 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Aquí consumimos el provider que trae los hoteles
     final tenantsAsync = ref.watch(tenantsProvider);
 
     return Scaffold(
@@ -139,7 +136,6 @@ class DashboardScreen extends ConsumerWidget {
             icon: const Icon(Icons.logout),
             tooltip: 'Salir',
             onPressed: () {
-              // Limpiamos el token al salir
               ref.read(apiClientProvider).clearToken();
               Navigator.pushReplacement(
                 context,
@@ -167,7 +163,6 @@ class DashboardScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // Aquí mostramos los estados de la petición
           Expanded(
             child: tenantsAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -179,21 +174,30 @@ class DashboardScreen extends ConsumerWidget {
                   return const Center(child: Text('No hay hoteles registrados todavía.'));
                 }
 
-                // Lista de tarjetas
                 return ListView.builder(
                   itemCount: tenants.length,
                   itemBuilder: (context, index) {
                     final tenant = tenants[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Color(0xFF4F46E5),
-                          child: Icon(Icons.business, color: Colors.white),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TenantDetailScreen(tenant: tenant),
+                            ),
+                          );
+                        },
+                        child: ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFF4F46E5),
+                            child: Icon(Icons.business, color: Colors.white),
+                          ),
+                          title: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('Código: ${tenant.code}'),
+                          trailing: const Icon(Icons.chevron_right),
                         ),
-                        title: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Código: ${tenant.code}'),
-                        trailing: const Icon(Icons.chevron_right),
                       ),
                     );
                   },
