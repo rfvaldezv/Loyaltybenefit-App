@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ApiClient {
   final Dio _dio;
+  
+  // Aquí guardaremos el token en memoria
+  String? _token;
 
   ApiClient()
       : _dio = Dio(
@@ -16,7 +19,24 @@ class ApiClient {
             },
           ),
         ) {
+    // Interceptor: Antes de cada petición, si hay token, lo agregamos al Header
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_token != null) {
+          options.headers['Authorization'] = 'Bearer $_token';
+        }
+        return handler.next(options);
+      },
+    ));
     _dio.interceptors.add(LogInterceptor(responseBody: true));
+  }
+
+  void setToken(String token) {
+    _token = token;
+  }
+
+  void clearToken() {
+    _token = null;
   }
 
   Future<Response> get(String path) => _dio.get(path);
