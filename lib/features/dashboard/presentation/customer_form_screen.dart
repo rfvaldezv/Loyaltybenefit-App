@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import 'earn_points_screen.dart'; // 👈 Importamos la pantalla de puntos
 
 class CustomerFormScreen extends ConsumerStatefulWidget {
   const CustomerFormScreen({super.key});
@@ -37,7 +38,13 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context); // Volver atrás después de guardar
+        // Redirigir a la pantalla de puntos
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EarnPointsScreen(customerName: _nameController.text),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ApiClient {
   final Dio _dio;
-  
-  // Aquí guardaremos el token en memoria
   String? _token;
 
   ApiClient()
@@ -19,7 +17,6 @@ class ApiClient {
             },
           ),
         ) {
-    // Interceptor: Antes de cada petición, si hay token, lo agregamos al Header
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         if (_token != null) {
@@ -28,37 +25,33 @@ class ApiClient {
         return handler.next(options);
       },
     ));
-    _dio.interceptors.add(LogInterceptor(responseBody: true));
   }
 
-  void setToken(String token) {
-    _token = token;
-  }
-
-  void clearToken() {
-    _token = null;
-  }
+  void setToken(String token) => _token = token;
+  void clearToken() => _token = null;
 
   Future<Response> get(String path) => _dio.get(path);
   Future<Response> post(String path, {dynamic data}) => _dio.post(path, data: data);
-  // Método para obtener los hoteles (Tenants)
-  Future<Response> getTenants() {
-    return _dio.get('/api/tenants');
-  }
 
-  Future<Response> getTenantById(String id) {
-    return _dio.get('/api/tenants/$id');
-  }
+  Future<Response> getTenants() => _dio.get('/api/tenants');
+  
+  Future<Response> getTenantById(String id) => _dio.get('/api/tenants/$id');
 
   Future<Response> createCustomer({required String name, required String email}) {
-    return _dio.post('/api/customers', data: {
-      'name': name,
-      'email': email,
+    return _dio.post('/api/customers', data: {'name': name, 'email': email});
+  }
+
+  Future<Response> earnPoints({
+    required String tenantId,
+    required String guestId,
+    required String stayId,
+  }) {
+    return _dio.post('/api/loyalty/earn', data: {
+      'tenantId': tenantId,
+      'guestId': guestId,
+      'stayId': stayId,
     });
   }
 }
 
-// Provider global
-final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
-});
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
