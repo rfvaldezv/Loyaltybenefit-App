@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
+import '../../dashboard/providers/tenant_provider.dart';
+import '../presentation/login_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -118,14 +120,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 }
 
 // ---------------------------------------------------------
-// Pantalla temporal de Dashboard (para probar el login)
+// Dashboard modificado para mostrar la lista de Hoteles
 // ---------------------------------------------------------
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   final String nombre;
   const DashboardScreen({super.key, required this.nombre});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Aquí consumimos el provider que trae los hoteles
+    final tenantsAsync = ref.watch(tenantsProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -134,6 +139,8 @@ class DashboardScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             tooltip: 'Salir',
             onPressed: () {
+              // Limpiamos el token al salir
+              ref.read(apiClientProvider).clearToken();
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -142,20 +149,59 @@ class DashboardScreen extends StatelessWidget {
           )
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 80),
-            const SizedBox(height: 16),
-            Text(
-              '¡Bienvenido, $nombre!',
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Bienvenido, $nombre',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
-            const Text('Has iniciado sesión correctamente con JWT.'),
-          ],
-        ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Hoteles (Clientes)',
+              style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Aquí mostramos los estados de la petición
+          Expanded(
+            child: tenantsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stack) => Center(
+                child: Text('Error: $error', style: const TextStyle(color: Colors.red)),
+              ),
+              data: (tenants) {
+                if (tenants.isEmpty) {
+                  return const Center(child: Text('No hay hoteles registrados todavía.'));
+                }
+
+                // Lista de tarjetas
+                return ListView.builder(
+                  itemCount: tenants.length,
+                  itemBuilder: (context, index) {
+                    final tenant = tenants[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFF4F46E5),
+                          child: Icon(Icons.business, color: Colors.white),
+                        ),
+                        title: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('Código: ${tenant.code}'),
+                        trailing: const Icon(Icons.chevron_right),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

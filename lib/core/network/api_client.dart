@@ -41,6 +41,10 @@ class ApiClient {
 
   Future<Response> get(String path) => _dio.get(path);
   Future<Response> post(String path, {dynamic data}) => _dio.post(path, data: data);
+  // Método para obtener los hoteles (Tenants)
+  Future<Response> getTenants() {
+    return _dio.get('/api/tenants');
+  }
 }
 
 // Provider global
