@@ -26,6 +26,8 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     setState(() => _isLoading = true);
     try {
       final api = ref.read(apiClientProvider);
+      
+      // 1. Guardamos el cliente en el backend
       await api.createCustomer(
         name: _nameController.text,
         email: _emailController.text,
@@ -38,11 +40,16 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        // Redirigir a la pantalla de puntos
+        
+        // 2. 🚀 REDIRIGIMOS A LA PANTALLA DE MONTO (ESTANCIA)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => EarnPointsScreen(customerName: _nameController.text),
+            builder: (_) => EarnPointsScreen(
+              customerName: _nameController.text,
+              // Generamos un ID de prueba para que el backend no falle
+              guestId: '00000000-0000-0000-0000-000000000001', 
+            ),
           ),
         );
       }

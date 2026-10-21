@@ -52,6 +52,19 @@ class ApiClient {
       'stayId': stayId,
     });
   }
+
+  // 👇 AQUÍ ESTÁ EL MÉTODO QUE FALTABA (bien adentro de la clase)
+  Future<Response> createStay({
+    required String tenantId,
+    required String guestId,
+    required double amount,
+  }) {
+    return _dio.post('/api/stays', data: {
+      'tenantId': tenantId,
+      'guestId': guestId,
+      'amount': amount,
+    });
+  }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
