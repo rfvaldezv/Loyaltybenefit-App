@@ -8,7 +8,7 @@ class ApiClient {
   ApiClient()
       : _dio = Dio(
           BaseOptions(
-            baseUrl: 'http://localhost:5265',
+	    baseUrl: 'https://api.loyaltybenefit.com',
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 10),
             headers: {
