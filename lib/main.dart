@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/login_screen.dart';
+import 'features/portal/guest_portal_screen.dart';
 
 void main() {
   runApp(
     const ProviderScope(
-      child: LoyaltyBenefitApp(),
+      child: ClientApp(),
     ),
   );
 }
 
-class LoyaltyBenefitApp extends StatelessWidget {
-  const LoyaltyBenefitApp({super.key});
+class ClientApp extends StatelessWidget {
+  const ClientApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +20,7 @@ class LoyaltyBenefitApp extends StatelessWidget {
       title: 'Loyalty Benefit',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const GuestPortalScreen(), // 👈 Arranca directo en el Portal del Huésped
     );
   }
 }
