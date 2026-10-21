@@ -4,7 +4,7 @@ import '../../../core/network/api_client.dart';
 
 class EarnPointsScreen extends ConsumerStatefulWidget {
   final String customerName;
-  final String guestId; // 👈 Recibimos el ID del cliente
+  final String guestId;
 
   const EarnPointsScreen({
     super.key, 
@@ -17,7 +17,7 @@ class EarnPointsScreen extends ConsumerStatefulWidget {
 }
 
 class _EarnPointsScreenState extends ConsumerState<EarnPointsScreen> {
-  final _amountController = TextEditingController(text: '1500'); // Ejemplo: $1500
+  final _amountController = TextEditingController(text: '1500');
   bool _isLoading = false;
 
   Future<void> _registrarEstancia() async {
@@ -33,29 +33,33 @@ class _EarnPointsScreenState extends ConsumerState<EarnPointsScreen> {
     try {
       final api = ref.read(apiClientProvider);
       
-      // Simulamos el TenantId y StayId para la prueba, 
-      // pero el GuestId es el real que trajimos de la pantalla anterior.
-      await api.createStay(
-        tenantId: "6890d5bd-2eb6-4803-9d0b-2af4868b5ccc", // 👈 El ID real de Concept Hotel
+      final response = await api.createStay(
+        tenantId: "6890d5bd-2eb6-4803-9d0b-2af4868b5ccc", // Concept Hotel
         guestId: widget.guestId,
+        stayId: GuidGenerator.generate(),
         amount: amount,
       );
 
       if (mounted) {
+        // Leemos la respuesta del backend
+        final data = response.data;
+        final puntos = data['puntosGanados'] ?? data['PuntosGanados'] ?? 0;
+        final mensaje = data['mensaje'] ?? data['Mensaje'] ?? 'Éxito';
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Estancia registrada. (El backend calculará los puntos)'),
+          SnackBar(
+            content: Text('✅ $mensaje\n⭐ Puntos otorgados: $puntos'),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context); // Volver a la pantalla anterior
       }
     } catch (e) {
       if (mounted) {
-        // Aquí atraparemos el error de validación del backend
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('⚠️ $e'),
+            content: Text('⚠️ Error: $e'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -107,7 +111,6 @@ class _EarnPointsScreenState extends ConsumerState<EarnPointsScreen> {
   }
 }
 
-// Generador de GUID rápido para la prueba
 class GuidGenerator {
   static String generate() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replaceAllMapped(RegExp(r'[xy]'), (match) {

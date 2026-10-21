@@ -57,11 +57,13 @@ class ApiClient {
   Future<Response> createStay({
     required String tenantId,
     required String guestId,
+    required String stayId,
     required double amount,
   }) {
     return _dio.post('/api/stays', data: {
       'tenantId': tenantId,
       'guestId': guestId,
+      'stayId': stayId,
       'amount': amount,
     });
   }
