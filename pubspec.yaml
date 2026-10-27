@@ -13,6 +13,7 @@ dependencies:
   flutter_riverpod: ^2.6.1
   dio: ^5.7.0
   go_router: ^14.8.1
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:
@@ -29,9 +30,6 @@ flutter:
 
 # Aquí va la configuración del generador de íconos
 flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: true
-  image_path: "assets/icon/app_icon.png"
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
@@ -40,3 +38,4 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icon/app_icon.png"
     icon_size: 256
+

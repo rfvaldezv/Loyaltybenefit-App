@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_client.dart';
-import 'earn_points_screen.dart'; // 👈 Importamos la pantalla de puntos
+import 'earn_points_screen.dart';
 
 class CustomerFormScreen extends ConsumerStatefulWidget {
   const CustomerFormScreen({super.key});
@@ -27,28 +27,28 @@ class _CustomerFormScreenState extends ConsumerState<CustomerFormScreen> {
     try {
       final api = ref.read(apiClientProvider);
       
-      // 1. Guardamos el cliente en el backend
-      await api.createCustomer(
-        name: _nameController.text,
-        email: _emailController.text,
+      // Llamada correcta usando tus variables reales
+      final response = await api.createCustomer(
+        _nameController.text,
+        _emailController.text,
       );
 
-      if (mounted) {
+      if (mounted && response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('✅ Cliente registrado exitosamente'),
             backgroundColor: Colors.green,
           ),
         );
-        
-        // 2. 🚀 REDIRIGIMOS A LA PANTALLA DE MONTO (ESTANCIA)
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => EarnPointsScreen(
               customerName: _nameController.text,
-              // Generamos un ID de prueba para que el backend no falle
-              guestId: '00000000-0000-0000-0000-000000000001', 
+              // Usamos el ID real que devuelve el backend si lo tienes, 
+              // o dejamos el dummy si aún no lo implementas.
+              guestId: '00000000-0000-0000-0000-000000000001',
             ),
           ),
         );
