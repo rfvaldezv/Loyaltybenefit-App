@@ -16,11 +16,12 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   bool _isLoading = false;
   int? _saldo;
 
-  final String tenantId = 'D8D6CB00-2600-4A83-9C4E-02F76065210D';
+  final String tenantId = '00000000-0000-0000-0000-000000000000'; // Reemplaza con tu GUID real
   
-  // Variables para el Branding dinámico
+  // Branding
   Color _primaryColor = const Color(0xFF4F46E5);
   Color _secondaryColor = const Color(0xFF8B5CF6);
+  String? _logoUrl;
 
   @override
   void initState() {
@@ -37,14 +38,14 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
         setState(() {
           _primaryColor = _hexToColor(response.data['primaryColor'] ?? '#4F46E5');
           _secondaryColor = _hexToColor(response.data['secondaryColor'] ?? '#8B5CF6');
+          _logoUrl = response.data['logoUrl'];
         });
       }
     } catch (e) {
-      // Si falla, mantenemos los colores por defecto
+      // Colores por defecto si falla
     }
   }
 
-  // Función de ayuda para convertir el string HEX a Color de Flutter
   Color _hexToColor(String hex) {
     hex = hex.replaceAll('#', '');
     if (hex.length == 6) hex = 'FF$hex';
@@ -78,8 +79,23 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mis Puntos'),
-        backgroundColor: _primaryColor, // Color dinámico
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Si hay logo, lo mostramos
+            if (_logoUrl != null && _logoUrl!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Image.network(
+                  'https://api.loyaltybenefit.com$_logoUrl',
+                  height: 30,
+                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+            const Text('Mis Puntos'),
+          ],
+        ),
+        backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
       ),
       body: Padding(
@@ -107,7 +123,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
             ElevatedButton(
               onPressed: _isLoading ? null : _consultarSaldo,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor, // Botón con color dinámico
+                backgroundColor: _primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -120,11 +136,8 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
               const SizedBox(height: 32),
               Card(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                elevation: 8,
-                shadowColor: _primaryColor.withValues(alpha: 0.4),
                 child: Container(
                   decoration: BoxDecoration(
-                    // Degradado usando el color primario y secundario
                     gradient: LinearGradient(
                       colors: [_primaryColor, _secondaryColor],
                       begin: Alignment.topLeft,
@@ -136,10 +149,10 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       children: [
-                        const Text('Tu saldo actual', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                        const Text('Tu saldo actual', style: TextStyle(color: Colors.white70)),
                         Text(
                           '$_saldo Puntos',
-                          style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+                          style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 16),
                         OutlinedButton.icon(
