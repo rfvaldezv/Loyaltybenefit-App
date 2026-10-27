@@ -80,6 +80,12 @@ class ApiClient {
   // MÉTODOS DEL PORTAL DEL HUÉSPED
   // ==========================================
 
+  Future<Response> getBranding(String tenantId) {
+    return _dio.get('/api/portal/branding', queryParameters: {
+      'tenantId': tenantId,
+    });
+  }
+
   Future<Response> getStatement(String email, String tenantId) {
     return _dio.get('/api/portal/statement', queryParameters: {
       'email': email,
@@ -114,4 +120,5 @@ class ApiClient {
   }
 }
 
+// EL PROVIDER VA AFUERA DE LA CLASE
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

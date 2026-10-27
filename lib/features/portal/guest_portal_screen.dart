@@ -16,8 +16,40 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   bool _isLoading = false;
   int? _saldo;
 
-  // ⚠️ Tu GUID de tenant real (para pruebas usamos el dummy)
-  final String tenantId = '00000000-0000-0000-0000-000000000000';
+  final String tenantId = 'D8D6CB00-2600-4A83-9C4E-02F76065210D';
+  
+  // Variables para el Branding dinámico
+  Color _primaryColor = const Color(0xFF4F46E5);
+  Color _secondaryColor = const Color(0xFF8B5CF6);
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarBranding();
+  }
+
+  Future<void> _cargarBranding() async {
+    try {
+      final api = ref.read(apiClientProvider);
+      final response = await api.getBranding(tenantId);
+      
+      if (response.statusCode == 200) {
+        setState(() {
+          _primaryColor = _hexToColor(response.data['primaryColor'] ?? '#4F46E5');
+          _secondaryColor = _hexToColor(response.data['secondaryColor'] ?? '#8B5CF6');
+        });
+      }
+    } catch (e) {
+      // Si falla, mantenemos los colores por defecto
+    }
+  }
+
+  // Función de ayuda para convertir el string HEX a Color de Flutter
+  Color _hexToColor(String hex) {
+    hex = hex.replaceAll('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    return Color(int.parse(hex, radix: 16));
+  }
 
   Future<void> _consultarSaldo() async {
     if (_emailController.text.isEmpty) return;
@@ -45,13 +77,17 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Puntos')),
+      appBar: AppBar(
+        title: const Text('Mis Puntos'),
+        backgroundColor: _primaryColor, // Color dinámico
+        foregroundColor: Colors.white,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Icon(Icons.card_giftcard, size: 80, color: Color(0xFF4F46E5)),
+            Icon(Icons.card_giftcard, size: 80, color: _primaryColor),
             const SizedBox(height: 16),
             const Text(
               'Consulta tu saldo de lealtad',
@@ -70,70 +106,87 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _consultarSaldo,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor, // Botón con color dinámico
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
               child: _isLoading
                   ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Consultar Saldo'),
+                  : const Text('Consultar Saldo', style: TextStyle(fontSize: 16)),
             ),
             if (_saldo != null) ...[
               const SizedBox(height: 32),
               Card(
-                color: const Color(0xFF4F46E5),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    children: [
-                      const Text('Tu saldo actual', style: TextStyle(color: Colors.white70)),
-                      Text(
-                        '$_saldo Puntos',
-                        style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      // Botón de Historial
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => StatementScreen(
-                                email: _emailController.text,
-                                tenantId: tenantId,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.history, color: Colors.white),
-                        label: const Text('Ver mi historial', style: TextStyle(color: Colors.white)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white54),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 8,
+                shadowColor: _primaryColor.withValues(alpha: 0.4),
+                child: Container(
+                  decoration: BoxDecoration(
+                    // Degradado usando el color primario y secundario
+                    gradient: LinearGradient(
+                      colors: [_primaryColor, _secondaryColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      children: [
+                        const Text('Tu saldo actual', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                        Text(
+                          '$_saldo Puntos',
+                          style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Botón de Catálogo de Premios
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final res = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RewardsScreen(
-                                email: _emailController.text,
-                                tenantId: tenantId,
-                                currentPoints: _saldo ?? 0,
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => StatementScreen(
+                                  email: _emailController.text,
+                                  tenantId: tenantId,
+                                ),
                               ),
-                            ),
-                          );
-                          if (res == true) {
-                            _consultarSaldo(); // Recargar saldo si canjeó algo
-                          }
-                        },
-                        icon: const Icon(Icons.storefront, color: Colors.white),
-                        label: const Text('Catálogo de Premios', style: TextStyle(color: Colors.white)),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white54),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            );
+                          },
+                          icon: const Icon(Icons.history, color: Colors.white),
+                          label: const Text('Ver mi historial', style: TextStyle(color: Colors.white)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white54),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final res = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RewardsScreen(
+                                  email: _emailController.text,
+                                  tenantId: tenantId,
+                                  currentPoints: _saldo ?? 0,
+                                ),
+                              ),
+                            );
+                            if (res == true) {
+                              _consultarSaldo();
+                            }
+                          },
+                          icon: const Icon(Icons.storefront, color: Colors.white),
+                          label: const Text('Catálogo de Premios', style: TextStyle(color: Colors.white)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.white54),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

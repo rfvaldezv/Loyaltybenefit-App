@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/api_client.dart';
+import '../../core/widgets/skeleton_loader.dart';
 
 class RewardsScreen extends ConsumerStatefulWidget {
   final String email;
@@ -23,8 +24,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
   List<dynamic> _rewards = [];
   String? _error;
   late int _puntosActuales;
-  
-  // NUEVO: Guarda el ID del premio seleccionado (null si no hay ninguno)
   String? _selectedRewardId;
 
   @override
@@ -38,7 +37,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
-      _selectedRewardId = null; // Reseteamos la selección al recargar
+      _selectedRewardId = null;
     });
     try {
       final api = ref.read(apiClientProvider);
@@ -50,7 +49,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         setState(() => _error = 'Error al cargar premios');
       }
     } catch (e) {
-        setState(() => _error = 'Error de conexión: $e');
+      setState(() => _error = 'Error de conexión: $e');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -73,7 +72,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
         if (mounted) {
           setState(() {
             _puntosActuales -= reward['pointsCost'] as int;
-            _selectedRewardId = null; // Desmarcamos la tarjeta tras el canje
+            _selectedRewardId = null;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -96,7 +95,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
     }
   }
 
-  // NUEVO: Abre el modal solo para el premio que está seleccionado
   void _abrirConfirmacion(dynamic reward) {
     final addressController = TextEditingController();
     bool isSaving = false;
@@ -244,7 +242,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Obtenemos el objeto del premio seleccionado para el botón flotante
     dynamic selectedReward;
     if (_selectedRewardId != null) {
       selectedReward = _rewards.firstWhere((r) => r['id'] == _selectedRewardId);
@@ -281,142 +278,8 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
             )
           ],
         ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.indigoAccent))
-            : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.redAccent, size: 60),
-                        const SizedBox(height: 16),
-                        Text(_error!, style: const TextStyle(color: Colors.white70)),
-                        const SizedBox(height: 16),
-                        ElevatedButton(onPressed: _cargarPremios, child: const Text('Reintentar')),
-                      ],
-                    ),
-                  )
-                : _rewards.isEmpty
-                    ? const Center(
-                        child: Text('No hay premios disponibles.', style: TextStyle(color: Colors.white54)),
-                      )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.8,
-                        ),
-                        itemCount: _rewards.length,
-                        itemBuilder: (context, index) {
-                          final reward = _rewards[index];
-                          final pointsCost = reward['pointsCost'] as int;
-                          final canAfford = _puntosActuales >= pointsCost;
-                          final pointsMissing = pointsCost - _puntosActuales;
-                          final isSelected = _selectedRewardId == reward['id'];
-
-                          return GestureDetector(
-                            // LÓGICA DE SELECCIÓN/DESELECCIÓN
-                            onTap: canAfford 
-                                ? () {
-                                    setState(() {
-                                      if (isSelected) {
-                                        _selectedRewardId = null; // Si ya estaba seleccionado, se desmarca
-                                      } else {
-                                        _selectedRewardId = reward['id']; // Si no, se marca
-                                      }
-                                    });
-                                  }
-                                : null,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isSelected 
-                                    ? Colors.indigo.withValues(alpha: 0.2) 
-                                    : (canAfford ? const Color(0xFF1E293B) : const Color(0xFF0F172A)),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected 
-                                      ? Colors.indigoAccent // Borde brillante al seleccionar
-                                      : (canAfford ? Colors.indigo.withValues(alpha: 0.2) : Colors.white10),
-                                  width: isSelected ? 2 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: (canAfford || isSelected) ? Colors.indigo.withValues(alpha: 0.1) : Colors.transparent,
-                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                      ),
-                                      child: Icon(
-                                        reward['isPhysical'] ? Icons.local_shipping : Icons.card_giftcard,
-                                        size: 40,
-                                        color: (canAfford || isSelected) ? Colors.indigoAccent : Colors.white24,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            reward['name'],
-                                            style: TextStyle(
-                                              color: canAfford ? Colors.white : Colors.white54,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${reward['pointsCost']} pts',
-                                                style: TextStyle(
-                                                  color: canAfford ? Colors.greenAccent : Colors.redAccent,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                              if (!canAfford)
-                                                Text(
-                                                  'Faltan $pointsMissing pts',
-                                                  style: const TextStyle(color: Colors.redAccent, fontSize: 10),
-                                                ),
-                                            ],
-                                          ),
-                                          // Quitamos el botón de la tarjeta, ahora toda la tarjeta es el botón
-                                          if (isSelected)
-                                            const Center(
-                                              child: Icon(Icons.check_circle, color: Colors.indigoAccent, size: 20),
-                                            )
-                                          else if (!canAfford)
-                                            const Center(
-                                              child: Icon(Icons.lock, color: Colors.white24, size: 16),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-        
-        // NUEVO: Botón flotante que aparece solo cuando hay algo seleccionado
-        bottomNavigationBar: _selectedRewardId != null 
+        body: _buildBody(),
+        bottomNavigationBar: _selectedRewardId != null && selectedReward != null
             ? SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -436,8 +299,182 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen> {
                   ),
                 ),
               )
-            : null, // Si no hay seleccionado, no mostramos nada
+            : null,
       ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return GridView.builder(
+        padding: const EdgeInsets.all(16),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 0.8,
+        ),
+        itemCount: 6,
+        itemBuilder: (context, index) => Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              const Expanded(
+                flex: 2, 
+                child: SkeletonBox(width: double.infinity, height: double.infinity, borderRadius: 16)
+              ),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      SkeletonBox(width: 60, height: 12),
+                      SizedBox(height: 8),
+                      SkeletonBox(width: 40, height: 10),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.redAccent, size: 60),
+            const SizedBox(height: 16),
+            Text(_error!, style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _cargarPremios, child: const Text('Reintentar')),
+          ],
+        ),
+      );
+    }
+
+    if (_rewards.isEmpty) {
+      return const Center(
+        child: Text('No hay premios disponibles.', style: TextStyle(color: Colors.white54)),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.8,
+      ),
+      itemCount: _rewards.length,
+      itemBuilder: (context, index) {
+        final reward = _rewards[index];
+        final pointsCost = reward['pointsCost'] as int;
+        final canAfford = _puntosActuales >= pointsCost;
+        final pointsMissing = pointsCost - _puntosActuales;
+        final isSelected = _selectedRewardId == reward['id'];
+
+        return GestureDetector(
+          onTap: canAfford 
+              ? () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedRewardId = null;
+                    } else {
+                      _selectedRewardId = reward['id'];
+                    }
+                  });
+                }
+              : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? Colors.indigo.withValues(alpha: 0.2) 
+                  : (canAfford ? const Color(0xFF1E293B) : const Color(0xFF0F172A)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected 
+                    ? Colors.indigoAccent
+                    : (canAfford ? Colors.indigo.withValues(alpha: 0.2) : Colors.white10),
+                width: isSelected ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: (canAfford || isSelected) ? Colors.indigo.withValues(alpha: 0.1) : Colors.transparent,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Icon(
+                      reward['isPhysical'] ? Icons.local_shipping : Icons.card_giftcard,
+                      size: 40,
+                      color: (canAfford || isSelected) ? Colors.indigoAccent : Colors.white24,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          reward['name'],
+                          style: TextStyle(
+                            color: canAfford ? Colors.white : Colors.white54,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${reward['pointsCost']} pts',
+                              style: TextStyle(
+                                color: canAfford ? Colors.greenAccent : Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (!canAfford)
+                              Text(
+                                'Faltan $pointsMissing pts',
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 10),
+                              ),
+                          ],
+                        ),
+                        if (isSelected)
+                          const Center(
+                            child: Icon(Icons.check_circle, color: Colors.indigoAccent, size: 20),
+                          )
+                        else if (!canAfford)
+                          const Center(
+                            child: Icon(Icons.lock, color: Colors.white24, size: 16),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
