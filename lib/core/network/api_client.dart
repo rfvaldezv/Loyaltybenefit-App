@@ -8,7 +8,8 @@ class ApiClient {
   ApiClient()
       : _dio = Dio(
           BaseOptions(
-            baseUrl: 'https://api.loyaltybenefit.com',
+            //baseUrl: 'https://api.loyaltybenefit.com',
+            baseUrl: 'http://localhost:5265', 
             connectTimeout: const Duration(seconds: 10),
             receiveTimeout: const Duration(seconds: 10),
             headers: {
@@ -117,6 +118,14 @@ class ApiClient {
       if (shippingAddress != null) 'shippingAddress': shippingAddress,
       if (rewardId != null) 'rewardId': rewardId,
     });
+  }
+
+  Future<Response> requestOtp(String email) {
+    return _dio.post('/api/portal/auth/request-otp', data: {'email': email});
+  }
+
+  Future<Response> verifyOtp(String email, String code) {
+    return _dio.post('/api/portal/auth/verify-otp', data: {'email': email, 'code': code});
   }
 }
 
