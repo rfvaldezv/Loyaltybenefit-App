@@ -52,7 +52,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
         });
       }
     } catch (e) {
-      // Ignorar error de branding
+      // Se usan los colores por defecto
     }
   }
 
@@ -80,12 +80,18 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
     }
   }
 
+  void _cerrarSesion() {
+    setState(() {
+      _saldo = null;
+      _emailController.clear();
+    });
+  }
+
   void _mostrarModalOtp() {
     final codeController = TextEditingController();
     final codeFocusNode = FocusNode();
     bool isModalLoading = false;
     bool isCodeSent = false;
-    String? debugOtp;
 
     showDialog(
       context: context,
@@ -101,10 +107,8 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                 final api = ref.read(apiClientProvider);
                 final response = await api.requestOtp(_emailController.text.trim());
                 if (response.statusCode == 200) {
-                  setStateModal(() {
-                    isCodeSent = true;
-                    debugOtp = response.data['debug_otp'];
-                  });
+                  setStateModal(() => isCodeSent = true);
+                  
                   Future.delayed(const Duration(milliseconds: 300), () {
                     if (mounted) codeFocusNode.requestFocus();
                   });
@@ -159,9 +163,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                       ),
                     ),
                   ] else ...[
-                    Text('Código enviado a ${_emailController.text}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    if (debugOtp != null)
-                      Text('(Simulado: $debugOtp)', style: const TextStyle(color: Colors.green, fontSize: 12)),
+                    Text('Hemos enviado un código a ${_emailController.text}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     const SizedBox(height: 16),
                     TextField(
                       controller: codeController,
@@ -177,6 +179,10 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                         filled: true, fillColor: const Color(0xFF0F172A),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       ),
+                    ),
+                    TextButton(
+                      onPressed: isModalLoading ? null : () => solicitarOtp(),
+                      child: const Text('Reenviar código', style: TextStyle(color: Colors.indigoAccent, fontSize: 14)),
                     ),
                   ],
                 ],
@@ -203,94 +209,124 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isFromOtp = widget.initialEmail != null && widget.initialEmail!.isNotEmpty;
-
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (_logoUrl != null && _logoUrl!.isNotEmpty)
+            if (_logoUrl != null && _logoUrl!.isNotEmpty && _logoUrl != "")
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
                 child: Image.network('http://localhost:5265$_logoUrl', height: 30, errorBuilder: (c, e, s) => const SizedBox.shrink()),
               ),
-            Text(isFromOtp ? 'Hola, ${widget.initialName}' : 'Mis Puntos'),
+            Text(_saldo != null ? 'Mi Cuenta' : 'Mis Puntos', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          if (_saldo != null)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              tooltip: 'Cerrar Sesión',
+              onPressed: _cerrarSesion,
+            ),
+        ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.card_giftcard, size: 80, color: _primaryColor),
-            const SizedBox(height: 16),
-            
-            if (!isFromOtp) ...[
-              const Text('Consulta tu saldo de lealtad', textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Tu correo electrónico',
-                  prefixIcon: const Icon(Icons.email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            Icon(Icons.card_giftcard, size: 100, color: _primaryColor.withValues(alpha: 0.8)),
+            const SizedBox(height: 24),
+
+            Text(
+              _saldo != null ? 'Bienvenido de nuevo' : 'Bienvenido a tu Programa de Lealtad',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _saldo != null ? 'Aquí tienes el resumen de tu cuenta.' : 'Consulta tu saldo y descubre los premios que tenemos para ti.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: Colors.white54),
+            ),
+            const SizedBox(height: 32),
+
+            if (_saldo == null) ...[
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                 ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (_emailController.text.isNotEmpty) _mostrarModalOtp();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Tu correo electrónico',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.email, color: Colors.white54),
+                        filled: true,
+                        fillColor: const Color(0xFF0F172A),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_emailController.text.isNotEmpty) _mostrarModalOtp();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Ingresar a mi cuenta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text('Acceder con OTP', style: TextStyle(fontSize: 16)),
               ),
             ] else ...[
-              Text('Bienvenido de nuevo', textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
-              const SizedBox(height: 24),
-            ],
-            
-            if (_saldo != null) ...[
-              const SizedBox(height: 32),
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 10,
+                shadowColor: _primaryColor.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [_primaryColor, _secondaryColor], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: const EdgeInsets.all(32.0),
                     child: Column(
                       children: [
-                        const Text('Tu saldo actual', style: TextStyle(color: Colors.white70)),
-                        Text('$_saldo Puntos', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 16),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => StatementScreen(email: _emailController.text, tenantId: tenantId)));
-                          },
-                          icon: const Icon(Icons.history, color: Colors.white),
-                          label: const Text('Ver mi historial', style: TextStyle(color: Colors.white)),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                        ),
+                        const Text('Tu saldo actual', style: TextStyle(color: Colors.white70, fontSize: 16)),
                         const SizedBox(height: 8),
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RewardsScreen(email: _emailController.text, tenantId: tenantId, currentPoints: _saldo ?? 0)));
-                            if (res == true) _consultarSaldo();
-                          },
-                          icon: const Icon(Icons.storefront, color: Colors.white),
-                          label: const Text('Catálogo de Premios', style: TextStyle(color: Colors.white)),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white54), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                        Text('$_saldo Puntos', style: const TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _buildActionButton(Icons.history, 'Historial', () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => StatementScreen(email: _emailController.text, tenantId: tenantId)));
+                            }),
+                            _buildActionButton(Icons.storefront, 'Premios', () async {
+                              final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RewardsScreen(email: _emailController.text, tenantId: tenantId, currentPoints: _saldo ?? 0)));
+                              if (res == true) _consultarSaldo();
+                            }),
+                          ],
                         ),
                       ],
                     ),
@@ -298,6 +334,27 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                 ),
               ),
             ]
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
           ],
         ),
       ),
