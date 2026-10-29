@@ -1,6 +1,8 @@
+// ignore_for_file: avoid_web_libraries_in_flutter, deprecated_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'dart:html' as html; // Necesario para leer la URL en Flutter Web
 import '../../core/network/api_client.dart';
 import 'statement_screen.dart';
 import 'rewards_screen.dart';
@@ -22,8 +24,7 @@ class GuestPortalScreen extends ConsumerStatefulWidget {
 class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   final _emailController = TextEditingController();
   int? _saldo;
-
-  final String tenantId = '00000000-0000-0000-0000-000000000000';
+  String _tenantId = '00000000-0000-0000-0000-000000000000'; // Default
   
   Color _primaryColor = const Color(0xFF4F46E5);
   Color _secondaryColor = const Color(0xFF8B5CF6);
@@ -32,6 +33,18 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // 1. Lógica para leer el QR (Parámetro 'property' de la URL)
+    try {
+      final uri = Uri.parse(html.window.location.href);
+      final propertyIdFromUrl = uri.queryParameters['property'];
+      if (propertyIdFromUrl != null && propertyIdFromUrl.isNotEmpty) {
+        _tenantId = propertyIdFromUrl;
+      }
+    } catch (e) {
+      // Si falla (porque no es web o no hay URL), se queda el default
+    }
+
     _cargarBranding();
     
     if (widget.initialEmail != null && widget.initialEmail!.isNotEmpty) {
@@ -43,7 +56,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
   Future<void> _cargarBranding() async {
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.getBranding(tenantId);
+      final response = await api.getBranding(_tenantId);
       if (response.statusCode == 200) {
         setState(() {
           _primaryColor = _hexToColor(response.data['primaryColor'] ?? '#4F46E5');
@@ -52,7 +65,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
         });
       }
     } catch (e) {
-      // Se usan los colores por defecto
+      // Usar colores por defecto si falla
     }
   }
 
@@ -67,7 +80,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
 
     try {
       final api = ref.read(apiClientProvider);
-      final response = await api.get('/api/portal/balance?email=${_emailController.text}&tenantId=$tenantId');
+      final response = await api.get('/api/portal/balance?email=${_emailController.text}&tenantId=$_tenantId');
 
       if (response.statusCode == 200) {
         setState(() => _saldo = response.data['puntos']);
@@ -218,7 +231,7 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
             if (_logoUrl != null && _logoUrl!.isNotEmpty && _logoUrl != "")
               Padding(
                 padding: const EdgeInsets.only(right: 8.0),
-                child: Image.network('http://localhost:5265$_logoUrl', height: 30, errorBuilder: (c, e, s) => const SizedBox.shrink()),
+                child: Image.network('https://api.loyaltybenefit.com$_logoUrl', height: 30, errorBuilder: (c, e, s) => const SizedBox.shrink()),
               ),
             Text(_saldo != null ? 'Mi Cuenta' : 'Mis Puntos', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
@@ -320,10 +333,10 @@ class _GuestPortalScreenState extends ConsumerState<GuestPortalScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _buildActionButton(Icons.history, 'Historial', () {
-                              Navigator.push(context, MaterialPageRoute(builder: (_) => StatementScreen(email: _emailController.text, tenantId: tenantId)));
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => StatementScreen(email: _emailController.text, tenantId: _tenantId)));
                             }),
                             _buildActionButton(Icons.storefront, 'Premios', () async {
-                              final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RewardsScreen(email: _emailController.text, tenantId: tenantId, currentPoints: _saldo ?? 0)));
+                              final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => RewardsScreen(email: _emailController.text, tenantId: _tenantId, currentPoints: _saldo ?? 0)));
                               if (res == true) _consultarSaldo();
                             }),
                           ],
